@@ -149,7 +149,8 @@ void            fr_window_archive_extract              (FrWindow      *window,
 						        gboolean       skip_older,
 						        FrOverwrite    overwrite,
 						        gboolean       junk_paths,
-							gboolean       ask_to_open_destination);
+							gboolean       ask_to_open_destination,
+							gboolean       avoid_tarbombs);
 void            fr_window_archive_extract_here         (FrWindow      *window,
 						        gboolean       skip_older,
 						        gboolean       overwrite,
@@ -333,6 +334,7 @@ void            fr_window_extract_archive_and_continue (FrWindow   *window,
 							const char *base_dir,
 							gboolean    skip_older,
 							FrOverwrite overwrite,
-							gboolean    junk_paths);
+							gboolean    junk_paths,
+							gboolean    avoid_tarbombs);
 
 #endif /* FR_WINDOW_H */

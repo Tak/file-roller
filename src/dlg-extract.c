@@ -72,6 +72,7 @@ extract_cb (GtkWidget   *w,
 	gboolean    selected_files;
 	gboolean    pattern_files;
 	gboolean    junk_paths;
+	gboolean    create_parent;
 	GList      *file_list;
 	char       *base_dir = NULL;
 	GError     *error = NULL;
@@ -179,10 +180,13 @@ extract_cb (GtkWidget   *w,
 
 	skip_newer = ! gtk_toggle_button_get_inconsistent (GTK_TOGGLE_BUTTON (GET_WIDGET ("keep_newer_checkbutton"))) && gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (GET_WIDGET ("keep_newer_checkbutton")));
 	junk_paths = ! gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (GET_WIDGET ("keep_structure_checkbutton")));
+	create_parent = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (GET_WIDGET ("create_parent_checkbutton")));
+
 
 	if (! gtk_toggle_button_get_inconsistent (GTK_TOGGLE_BUTTON (GET_WIDGET ("keep_newer_checkbutton"))))
 		g_settings_set_boolean (data->settings, PREF_EXTRACT_SKIP_NEWER, skip_newer);
 	g_settings_set_boolean (data->settings, PREF_EXTRACT_RECREATE_FOLDERS, ! junk_paths);
+	g_settings_set_boolean (data->settings, PREF_EXTRACT_CREATE_PARENT, create_parent);
 
 	selected_files = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (GET_WIDGET ("selected_files_radiobutton")));
 	pattern_files = gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (GET_WIDGET ("file_pattern_radiobutton")));
@@ -226,8 +230,8 @@ extract_cb (GtkWidget   *w,
 						base_dir,
 						skip_newer,
 						FR_OVERWRITE_ASK,
-						junk_paths);
-
+						junk_paths,
+						create_parent);
 	_g_string_list_free (file_list);
 	g_object_unref (destination);
 	g_free (base_dir);
@@ -307,6 +311,7 @@ dlg_extract__common (FrWindow *window,
 
 	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (GET_WIDGET ("keep_newer_checkbutton")), g_settings_get_boolean (data->settings, PREF_EXTRACT_SKIP_NEWER));
 	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (GET_WIDGET ("keep_structure_checkbutton")), g_settings_get_boolean (data->settings, PREF_EXTRACT_RECREATE_FOLDERS));
+	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (GET_WIDGET ("create_parent_checkbutton")), g_settings_get_boolean (data->settings, PREF_EXTRACT_CREATE_PARENT));
 
 	/* Set the signals handlers. */
 

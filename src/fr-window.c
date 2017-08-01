@@ -4561,6 +4561,7 @@ wait_dnd_extraction (FrWindow *window)
 				   FALSE,
 				   FR_OVERWRITE_ASK,
 				   FALSE,
+				   FALSE,
 				   FALSE);
 
 	DndWaitInfo wait_info = { NULL, NULL };
@@ -6983,40 +6984,6 @@ _fr_window_archive_extract_from_edata_maybe (FrWindow    *window,
 }
 
 
-void
-fr_window_archive_extract (FrWindow    *window,
-			   GList       *file_list,
-			   GFile       *destination,
-			   const char  *base_dir,
-			   gboolean     skip_older,
-			   FrOverwrite  overwrite,
-			   gboolean     junk_paths,
-			   gboolean     ask_to_open_destination)
-{
-	ExtractData *edata;
-
-	edata = extract_data_new (window,
-				  file_list,
-				  destination,
-				  base_dir,
-				  skip_older,
-				  overwrite,
-				  junk_paths,
-				  ask_to_open_destination,
-				  FALSE);
-
-	fr_window_set_current_action (window,
-				      FR_BATCH_ACTION_EXTRACT,
-				      edata,
-				      (GFreeFunc) extract_data_free);
-
-	_fr_window_archive_extract_from_edata_maybe (window, edata);
-}
-
-
-/* -- fr_window_archive_extract_here -- */
-
-
 #define MIN_TOPLEVEL_ITEMS_FOR_A_TARBOMB 2
 
 
@@ -7089,6 +7056,53 @@ _get_destination_to_avoid_tarbomb (GFile *file)
 
 	return destination;
 }
+
+
+void
+fr_window_archive_extract (FrWindow    *window,
+			   GList       *file_list,
+			   GFile       *destination,
+			   const char  *base_dir,
+			   gboolean     skip_older,
+			   FrOverwrite  overwrite,
+			   gboolean     junk_paths,
+			   gboolean     ask_to_open_destination,
+			   gboolean     avoid_tarbombs)
+{
+	ExtractData *edata;
+
+	if (avoid_tarbombs && _archive_extraction_generates_a_tarbomb (window->archive))
+	{
+		GFile *archive_relative_destination = _get_destination_to_avoid_tarbomb (fr_archive_get_file (window->archive));
+		GFile *original_destination = destination;
+		destination = g_file_get_child (original_destination, g_file_get_basename (archive_relative_destination));
+		g_object_unref (original_destination);
+		g_object_unref (archive_relative_destination);
+	}
+	else
+		g_object_ref (destination);
+
+	edata = extract_data_new (window,
+				  file_list,
+				  destination,
+				  base_dir,
+				  skip_older,
+				  overwrite,
+				  junk_paths,
+				  ask_to_open_destination,
+				  avoid_tarbombs);
+
+	fr_window_set_current_action (window,
+				      FR_BATCH_ACTION_EXTRACT,
+				      edata,
+				      (GFreeFunc) extract_data_free);
+
+	_fr_window_archive_extract_from_edata_maybe (window, edata);
+	g_object_unref (destination);
+}
+
+
+/* -- fr_window_archive_extract_here -- */
 
 
 void
@@ -9546,7 +9560,8 @@ fr_window_exec_batch_action (FrWindow      *window,
 					   edata->skip_older,
 					   edata->overwrite,
 					   edata->junk_paths,
-					   edata->ask_to_open_destination);
+					   edata->ask_to_open_destination,
+					   edata->avoid_tarbombs);
 		break;
 
 	case FR_BATCH_ACTION_EXTRACT_HERE:
@@ -9974,7 +9989,8 @@ fr_window_extract_archive_and_continue (FrWindow      *window,
 					const char    *base_dir,
 					gboolean       skip_older,
 					FrOverwrite    overwrite,
-					gboolean       junk_paths)
+					gboolean       junk_paths,
+					gboolean       avoid_tarbombs)
 {
 	if (fr_window_batch_get_current_action_type (window) == FR_BATCH_ACTION_EXTRACT_ASK_OPTIONS) {
 
@@ -9991,7 +10007,7 @@ fr_window_extract_archive_and_continue (FrWindow      *window,
 									  FR_OVERWRITE_ASK,
 									  junk_paths,
 									  _fr_window_get_ask_to_open_destination (window),
-									  FALSE),
+									  avoid_tarbombs),
 							(GFreeFunc) extract_data_free);
 		fr_window_batch_resume (window);
 	}
@@ -10003,5 +10019,6 @@ fr_window_extract_archive_and_continue (FrWindow      *window,
 					   skip_older,
 					   FR_OVERWRITE_ASK,
 					   junk_paths,
-					   _fr_window_get_ask_to_open_destination (window));
+					   _fr_window_get_ask_to_open_destination (window),
+					   avoid_tarbombs);
 }
